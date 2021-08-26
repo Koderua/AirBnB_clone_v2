@@ -1,24 +1,30 @@
 #!/usr/bin/python3
-"""fabfile that handles deployment of archive files"""
-from fabric.api import *
-from os.path import isfile
+"""
+Fabric script based on the file 1-pack_web_static.py that distributes an
+archive to the web servers
+"""
 
-env.hosts = ['34.138.61.3', '34.75.118.132']
-env.user = "ubuntu"
+from fabric.api import put, run, env
+from os.path import exists
+env.hosts = ['142.44.167.228', '144.217.246.195']
 
 
 def do_deploy(archive_path):
-    """distributes an archive to web servers"""
-    if not isfile(archive_path):
+    """distributes an archive to the web servers"""
+    if exists(archive_path) is False:
         return False
-    success = put(archive_path, "/tmp/")
-    file_name = archive_path.split("/")[-1]
-    file_path = "/data/web_static/releases/{}".format(file_name.split(".")[0])
-    success = run("mkdir -p {}".format(file_path))
-    success = run("tar -xzf /tmp/{} -C {}".format(file_name, file_path))
-    success = run("rm /tmp/{}".format(file_name))
-    success = run("mv {}/web_static/* {}/".format(file_path, file_path))
-    success = run("rm -rf {}/web_static".format(file_path))
-    success = run("rm -rf /data/web_static/current")
-    success = run("ln -s {} {}".format(file_path, "/data/web_static/current"))
-    return success.succeeded
+    try:
+        file_n = archive_path.split("/")[-1]
+        no_ext = file_n.split(".")[0]
+        path = "/data/web_static/releases/"
+        put(archive_path, '/tmp/')
+        run('mkdir -p {}{}/'.format(path, no_ext))
+        run('tar -xzf /tmp/{} -C {}{}/'.format(file_n, path, no_ext))
+        run('rm /tmp/{}'.format(file_n))
+        run('mv {0}{1}/web_static/* {0}{1}/'.format(path, no_ext))
+        run('rm -rf {}{}/web_static'.format(path, no_ext))
+        run('rm -rf /data/web_static/current')
+        run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
+        return True
+    except:
+        return False
