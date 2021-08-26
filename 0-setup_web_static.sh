@@ -1,23 +1,38 @@
 #!/usr/bin/env bash
-# sets up web servers for the deployment of web_static
+# Sets up a web server for deployment of web_static.
 
-dpkg -s nginx >/dev/null 2>&1
-
-if [ "$?" ]
-then
-        apt-get -y update
-        apt-get install -y nginx
-fi
+apt-get update
+apt-get install -y nginx
 
 mkdir -p /data/web_static/releases/test/
 mkdir -p /data/web_static/shared/
-echo "testing" > /data/web_static/releases/test/index.html
+echo "Holberton School" > /data/web_static/releases/test/index.html
+ln -sf /data/web_static/releases/test/ /data/web_static/current
 
-ln -fs /data/web_static/releases/test/ /data/web_static/current
-chown -hR ubuntu:ubuntu /data/
+chown -R ubuntu /data/
+chgrp -R ubuntu /data/
 
-server_block="\n\tlocation /hbnb_static {\n\t\talias /data/web_static/current/;\n\t}\n"
-file="/etc/nginx/sites-available/default"
+printf %s "server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    add_header X-Served-By $HOSTNAME;
+    root   /var/www/html;
+    index  index.html index.htm;
 
-sed -i "41a\ $server_block" "$file";
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
+    }
+
+    location /redirect_me {
+        return 301 http://fkadeal.com/;
+    }
+
+    error_page 404 /404.html;
+    location /404 {
+      root /var/www/html;
+      internal;
+    }
+}" > /etc/nginx/sites-available/default
+
 service nginx restart
